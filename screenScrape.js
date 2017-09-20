@@ -1,8 +1,8 @@
 exports.findPlayer = function(playerName){
-  var fs = require('fs');
-  var obj = JSON.parse(fs.readFileSync('players.json', 'utf8'));
-
-  console.log(obj[0][0]);
+  // var fs = require('fs');
+  // var obj = JSON.parse(fs.readFileSync('players.json', 'utf8'));
+  //
+  // console.log(obj[0][0]);
 }
 
 exports.grabAllPlayers = function(){
@@ -63,8 +63,8 @@ exports.grabAllPlayers = function(){
                   for(i = 0; i < data[0].length; i++){
                     if(!data[2][i].includes('<a') && data[1][i].length > 0){
                       var link = data[1][i].split(/"/)[1];
-                      var name = data[1][i].split(/>([^']+)</)[1]
-                      rows[l] = {
+                      var name = (data[1][i].split(/>([^']+)</)[1]).replace(/&apos;/, "\'")
+                      rows[name] = {
                         "Name":name,
                         "Position":data[2][i],
                         "Number":data[0][i],
@@ -81,6 +81,7 @@ exports.grabAllPlayers = function(){
           });
         }).then(function(rows){
             delete rows["Team"];
+
             players[j] = rows;
             j++;
             if(Object.keys(players).length > 31){
@@ -89,6 +90,7 @@ exports.grabAllPlayers = function(){
                       return console.log(err);
                   }
                   console.log("Players written to file.");
+                  cleanJSON();
               });
             }
         });
@@ -177,4 +179,70 @@ function formatQbList(){
           console.log('file saved');
         });
     });
+}
+
+function cleanJSON(){
+  var fs = require('fs');
+  var obj = JSON.parse(fs.readFileSync('players.json', 'utf8'));
+  var jsonfile = require('jsonfile');
+
+  var players = {}, finalPlayers = {};
+
+  for(var i = 0; i < Object.keys(obj).length; i++){
+    Object.keys(obj[i]).forEach(function(key){
+      players[key] = obj[i][key];
+    });
+  }
+  
+  var playersArr = Object.keys(players);
+  playersArr = quickSort(playersArr, 0, playersArr.length -1);
+
+  for(var k = 0; k < playersArr.length; k++){
+    finalPlayers[playersArr[k]] = players[playersArr[k]];
+  }
+
+  jsonfile.writeFile("players.json",finalPlayers,{spaces: 2},function(err) {
+      if(err) {
+          return console.log(err);
+      }
+      console.log("Players Cleaned");
+  });
+
+}
+
+function quickSort(arr, left, right){
+   var len = arr.length,
+   pivot,
+   partitionIndex;
+
+  if(left < right){
+    pivot = right;
+    partitionIndex = partition(arr, pivot, left, right);
+
+   //sort left and right
+   quickSort(arr, left, partitionIndex - 1);
+   quickSort(arr, partitionIndex + 1, right);
+  }
+  return arr;
+}
+
+
+function partition(arr, pivot, left, right){
+   var pivotValue = arr[pivot],
+       partitionIndex = left;
+
+   for(var i = left; i < right; i++){
+    if(arr[i] < pivotValue){
+      swap(arr, i, partitionIndex);
+      partitionIndex++;
+    }
+  }
+  swap(arr, right, partitionIndex);
+  return partitionIndex;
+}
+
+function swap(arr, i, j){
+   var temp = arr[i];
+   arr[i] = arr[j];
+   arr[j] = temp;
 }
